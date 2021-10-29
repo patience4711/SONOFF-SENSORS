@@ -23,7 +23,7 @@ Or use one of the binary file to flash directly on your ESP device.
 
 ## the hardware
 It is nothing more than a Sonoff r2 or r3 with a header soldered on it to be able to flash it. How to do this is easy to google.
-If you want to use a sensor, here is the wiring diagram.
+If you want to use a sensor, you also need the header. Here is the wiring diagram.
 
 ![connections](https://user-images.githubusercontent.com/12282915/139238631-da64f4d7-3c4c-4940-8107-e4137dd748a7.jpg)
 
