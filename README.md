@@ -6,6 +6,7 @@ The program has a lot of smart features. All settings can be done via the webint
 See it in action on youtube: https://youtu.be/zvR9k_P_OLU
 
 ## features
+- very easy to understand and operate, help available on most pages.
 - Easy wifi config portal
 - 4 timers with extensive options
 - ota software update
@@ -15,6 +16,7 @@ See it in action on youtube: https://youtu.be/zvR9k_P_OLU
 - Fast asyc webserver
 - Smart timekeeping
 - A lot of system info on the webpage
+- state of the switch and sensor values are sent by mqtt
 
 ## compile this sketch
 Use arduino ide with the esp822 version 2.7.1 installed under boardmanager. The ota updates won't work with other versons.
