@@ -1,7 +1,7 @@
 # SONOFF-SENSORS
 
 This is a generic software for sonoff basic r2 and r3, mini, s20 and also for self build ESP8266-01 switches. Depending on the defines at the start you can make a choice.
-The program has a lot of smart features. All settings can be done via the webinterface. The state of the sensors and/or the switch is communicated via mqtt. Iit is a very nice alternative for tasmota, because this can be operated by anyone.
+The program has a lot of smart features. All settings can be done via the webinterface. It is a very nice alternative for tasmota, because this can be operated by anyone.
 
 See it in action on youtube: https://youtu.be/zvR9k_P_OLU
 
