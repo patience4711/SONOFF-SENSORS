@@ -32,7 +32,7 @@ const char SENSORCONFIG_START[] PROGMEM = R"=====(
 <div id='msect'>
   <div class='divstijl'>
   <form id='fM' method='get' action='sensorconfig' oninput='subMit()'>
-  <irame name>
+  <center><irame name>
   </form></div>
 </div>
 <br>

@@ -10,7 +10,6 @@ const char BASISCONFIG[] PROGMEM = R"=====(
     <b>switch name:</b><br>If you avoid spaces, the hostname will be reflected correctly by your router.
   <br><br><b>user passwd:</b><br>Grant housemates limited access with username  
   <span style='color:red;'>user</span> and the <span style='color:red;'>user passw.</span> 
-  <br><br>
   <br><br><b>active automation:</b><br>The desired behaviour of the automatic switching.
   <br>Eventually setup the connected sensor in the sensors menu. 
   </div>
@@ -40,7 +39,7 @@ const char BASISCONFIG[] PROGMEM = R"=====(
     
     <tr><td style='width:140px;'>device name<td><input class='inp6' name='swname' maxlength='21' title='no spaces, see help' value='{nm}'></input></tr>
     <tr><td>user passwd<td><input  class='inp5' name='pw1' length='11' placeholder='max. 10 char' value='{pw1}' pattern='.{4,10}' title='betweeen 4 and 10 characters'></input></tr> 
-    <tr><td>security<td><input class='inp2' name='bev' value='{bev}' pattern='(?:[01]|2(?![4-9])){1}[0-9]{1}:[0-5]{1}[0-9]{1}' title='hh:mm' ></input>&nbsp&nbsp autom. uitschakeling</tr> 
+    <tr><td>security<td><input class='inp2' name='bev' value='{bev}' pattern='(?:[01]|2(?![4-9])){1}[0-9]{1}:[0-5]{1}[0-9]{1}' title='hh:mm' ></input></tr> 
     
     <tr><td>active automation<td><select name='timer' id='timer' class='sb1'>
     <option value='0' tM0>none</option>
@@ -103,9 +102,7 @@ const char BASISCONFIG[] PROGMEM = R"=====(
   <form id='fM' method='get' action='basisConfig' oninput='subMit()'>
   <table>
   <tr><td style='width:140px;'>device name<td><input class='inp6' name='swname' maxlength='21' title='no spaces, see help' value='{nm}'></input></tr>
-  
   <tr><td>user passwd<td><input  class='inp5' name='pw1' length='11' value='{pw1}' pattern='.{4,10}' title='between 4 and 10 characters'></input></tr> 
-  
   <tr><td>security<td><input class='inp2' name='bev' value='{bev}' pattern='(?:[01]|2(?![4-9])){1}[0-9]{1}:[0-5]{1}[0-9]{1}' title='hh:mm' ></input></tr> 
   </table></form>
   </div>
@@ -135,12 +132,12 @@ void zendPageBasis() {
   toSend.replace("'{bev}'" , "'" + String(aso) + "'") ;
 
   #ifdef SENSORS
-   replace_timerselectbox(); // om de select voor actieve automatisering goed te zetten
+   replace_timerselectbox(); // to set the select for active automatition
   #endif
 }
 
 void handleBasisconfig(AsyncWebServerRequest *request) { // form action = handleConfigsave
-// collect the serverarguments   
+   // collect the serverarguments   
    //Serial.println("handleBasisconfig");
    
    strcpy(swName, request->arg("swname").c_str());
@@ -158,7 +155,8 @@ void handleBasisconfig(AsyncWebServerRequest *request) { // form action = handle
       for (int z = 0; z<TIMERCOUNT; z++) timerActive[z] = '0';
       timerConfigsave();
    }
-//checken of er een mismatch is tussen de sensor en de automatisering zoja dan wordt timer nul
+// checken if there is a mismatch between the sensor and the automatition 
+// if so, timer becomes 0
    check_mismatch();
 #endif
    DebugPrintln("saved basisconfig");
@@ -168,9 +166,6 @@ void handleBasisconfig(AsyncWebServerRequest *request) { // form action = handle
 
 }
 
-// stel dat er een thermostaat is ingesteld maar we hebben nu een lichtsensor, of helemaal geen sensor
-// dan moeten we de instelling in timer[0] veranderen
-// dus als er een mismatch is tussen de sensor en de soort automation
 #if defined SENSORS  
 void check_mismatch() {
 int klik=0;
@@ -201,26 +196,25 @@ void replace_timerselectbox () {  // wordt door basisconfig gebruikt
 toSend.replace("tieTel", swName );
 toSend.replace("HANSIART" , String(swName));  
 
-// als er een temperatuursensor is dan moeten we de knop voor de instellingen zichtbaar maken
-// en ook de option voor thermostaat in de selectbox
+// if there is a temperaturesensor then we haveto show the button for settings
+// and also the option for thermostate in the selectbox
 if (sensor[0] == '1' || sensor[0] == '2' || sensor[0] == '3') {
 DebugPrintln("de waarde van sensor[1] is 1  2 of 3");
 //  toSend.replace("'thermostaat' type='hidden'", "'thermostaat' type='button'");
-  toSend.replace("aption1", "option"); // de option voor de thermostaat in de selectbox
+  toSend.replace("aption1", "option"); // 
   } 
- // als er een dht of BME is aangesloten bovendien de hygrostaat
+ // if there is a dht or BME connected, also the hygrostate
 if (sensor[0] == '2' || sensor[0] == '3') {
-//  toSend.replace("'hygrostaat' type='hidden'", "'hygrostaat' type='button'");
-  toSend.replace("aption2", "option"); // de option voor de hygrostaat in de selectbox 
+  toSend.replace("aption2", "option"); //  
 }
 //if (sensor[0] == '4') {
 //  toSend.replace("aption5", "option"); // de option voor de motion sensor
 
 if (sensor[0] == '6') {
-  toSend.replace("aption3", "option"); // de option voor de hygrostaat in de selectbox
+  toSend.replace("aption3", "option"); // the option for the light sensor
 }
 if (sensor[0] == '7') {
-  toSend.replace("aption4", "option"); // de option voor de digital sensor in de selectbox
+  toSend.replace("aption4", "option"); // the option for the digital sensor
 }
 
 // zet de geselecteerde option in de select terug
@@ -236,7 +230,7 @@ if (timer[0] == '3') { //thermostaat
 if (timer[0] == '4') { //hygrostaat
     toSend.replace ("tM4", "selected");
 }
-// voor de bewegingssensor niet nodig, die werkt altijd als ingesteld
+// not needed for the motion sensor, that always works when selected
 if (timer[0] == '6') { //lichtsensor
     toSend.replace ("tM6", "selected");
 }
