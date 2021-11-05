@@ -42,73 +42,135 @@ bool mqttConnect() {   // MQTT connection (documented way from AutoConnect : htt
   return false;
 }
 
-//void zendUit() {
-//if ( client.connected() ) {
-//    DebugPrintln("zendUit(), we zijn verbonden");
-//} else {
-//     DebugPrintln("zendUit(), we moeten mqtt verbinden");         
-//     mqtt_reconnect();
-//}        
-//
-//if ( client.connected() ) {
-//          if (client.publish(mqttTOPIC, (char*) mqttMess.c_str())) {
-//            DebugPrint("Publish geslaagd, de message = "); DebugPrintln(mqttMess);
-//          }
-//          else {
-//            DebugPrintln("Publish mislukt");
-//          }
-//    } else {
-//    DebugPrintln("zendUit(), we konden niet verbinden, geen mqtt"); 
-//    }
-//}
 
 // **********************************************************************
 //                CALL BACK (ingekomen boodschappen)
 // **********************************************************************
-
+// the
 void MQTT_Receive_Callback(char* topic, byte* payload, unsigned int length) {
 
-StaticJsonDocument <256> doc;
+StaticJsonDocument <320> doc;
 deserializeJson(doc,payload);
 int swidx = doc["idx"].as<int>();
-String cmd = doc["cmd"].as<String>();
+int cmd = doc["nvalue"].as<int>();
 
-if (swidx = idxSwitch ) {
+if (swidx == idxSwitch ) {
   DebugPrintln("found my switchIDX");
-     if ( cmd == "On" && digitalRead(RELAY_PIN)==SWITCH_UIT) {
+     if ( cmd == 1 && digitalRead(RELAY_PIN)==SWITCH_UIT) {
          DebugPrintln("mqtt in: On gevonden");
          checkTimers();
          switch_on_now(false, false, "mqtt in"); // geen mqtt message
         }
 
-     if ( cmd == "Off" && digitalRead(RELAY_PIN)==SWITCH_AAN) {
+     if ( cmd == 0 && digitalRead(RELAY_PIN)==SWITCH_AAN) {
          DebugPrintln("mqtt in: Off gevonden");
-         //checkTimers(); // maak een eventuele timer onschadelijk
+         checkTimers(); // maak een eventuele timer onschadelijk
          switch_off_now(false, true, "mqtt in"); //geen mqtt wel checkTimers
        } 
    }
 }  
 
+// ******************************************************************************************
+//   mqtt message  state of the switch
+// ******************************************************************************************
 
-// *******************************************************************************
-//                   mqtt message over de status van de switch
-// *******************************************************************************
-//void switchStatus(int beweging) {
-//DebugPrintln("functie switchStatus");  
-//String toMQTT;
-//if (!mqttEnabled) { // als mqtt niet is ingesteld
-//return;
-//}
-//
-//if ( client.connected() ) {
-//
-//        if ( beweging == 1 ) {  //als de stastus van de lamp verandert dan sturen we een status update
-//            toMQTT="{\"idx\":{idx},\"nvalue\":1}";
-//        } else {
-//            toMQTT="{\"idx\":{idx},\"nvalue\":0}";  
-//        }
-//        toMQTT.replace("{idx}" , String(idxSwitch));
-//        MQTT_Client.publish ( mqttOuttopic.c_str(), toMQTT.c_str() );
-//        
-//    }   
-//}
+void mqttSwitchupdate() 
+{
+  if ( !mqttEnabled ){ 
+    DebugPrintln("no valid mqtt address or not configured, skipping..");
+    return;
+  }    
+  // update switch state in a json format
+  StaticJsonDocument<256> doc;
+  //doc["command"] = "switchlight";
+  doc["idx"] = idxSwitch;
+  //if (value == 0) { doc["switchcmd"] = "Off"; } else { doc["switchcmd"] = "On";}
+  if (value == 0) { doc["nvalue"] = 0; } else { doc["nvalue"] = 1;}
+  char out[64];
+  int b =serializeJson(doc, out);
+  MQTT_Client.publish ( mqttOuttopic.c_str(), out );
+}
+
+// ******************************************************************************************
+//   mqtt message value of the sensor
+// ******************************************************************************************
+  #ifdef SENSORS
+  void sendMqttsensor() {
+  String mqttMess;
+  if ( !mqttEnabled ){ 
+    DebugPrintln("no valid mqtt address or not configured, skipping..");
+    return;
+  }
+
+  // this function takes care for the transmission of the mqtt messages
+  //if a sensor is polled we send an update
+
+  mqttMess="";
+  StaticJsonDocument<256> doc;
+  doc["idx"] = idxSensor;
+  doc["nvalue"] = 0;
+
+  // we already have doc["idx"] = idxSensor and doc[nvalue]=0;
+  // we have to add svalue
+  String Mess = "";
+           
+      int hum_stat; // reken een getal uit voor de vochtigheids statitstiek
+          if (sensor[0] == '2' || sensor[0] == '3'){
+         // 0=normal 1 = comfortabel 2 = droog 3 = wet
+                if ( humidity > 70 ) { //nat
+                  hum_stat = 3;
+                } else if ( humidity < 30 ) { // droog
+                  hum_stat = 2; 
+                } else if ( humidity >= 30 & humidity <= 45 ) { // normaal
+                  hum_stat = 0;
+                } else if ( humidity > 45 & humidity <= 70 ) { //comfortabel
+                  hum_stat = 1;
+                }
+           }
+        //
+        if (sensor[0] == '3') { // de BME 280
+        
+        // we moeten een waarde berekenen voor de weersvoorspelling aan de hand van de luchtdruk  
+         bar_for = 0; // 3=bewoklt 1 = mooi 2 = half bew 4 = regen
+                if ( p > 1020.0 ) { //hoge luchtdruk dus mooi
+                  bar_for = 1;
+                } else if ( p < 1000.0 ) { // laag dus regen
+                  bar_for = 4; 
+                } else if ( p >= 1000.0 & p <= 1010.0 ) { // onder gem = bewolkt
+                  bar_for = 3;
+                } else if (p >= 1010.0 & p <= 1020.0 ) { // boven gem = half bew
+                  bar_for = 2;
+                }   
+          Mess=String(temp_c,1) + ";" + String(humidity,1) + ";" + String(hum_stat) + ";" + String(p,1) + ";" + String(bar_for) + ";";        
+        }
+ 
+       if (sensor[0] == '2') 
+       {
+           Mess=String(temp_c,1) + ";" + String(humidity,1) + ";" + String(hum_stat) + ";";
+       }
+
+       if (sensor[0] == '1') 
+       {
+          Mess = String(temp_c,1) + ";";
+       } 
+       
+       if (sensor[0] == '6') { //lightsensor sends lux
+           Mess = String(p,1) + ";"; 
+       }
+       
+       if(sensor[0]=='4' || sensor[0]=='7') //motion or digital
+       { 
+           Mess =  String(digitalRead(3));
+       } 
+   
+   
+      doc["svalue"] = Mess;
+      DebugPrint("svalue in sendMqtt = "); 
+      DebugPrintln(Mess);
+    
+    // we hebben nu de mqtt json en kunnen deze verzenden
+      char out[64];
+      int b =serializeJson(doc, out);
+      MQTT_Client.publish ( mqttOuttopic.c_str(), out );
+}
+#endif

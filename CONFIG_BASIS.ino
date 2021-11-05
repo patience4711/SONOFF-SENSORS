@@ -82,23 +82,22 @@ const char BASISCONFIG[] PROGMEM = R"=====(
 </div>
 <div id='msect'>
 <div id='bo'></div>
-  <ul>
-  <li><a href='/'>home</a></li>
-  <li><a href='/TIMERCONFIG'>timers</a></li>
-  <li><a href='/IPCONFIG'>wifi</a></li>
-  <li><a href='/GEOCONFIG'>time</a></li>
-  <li><a href='/MQTT'>mqtt</a></li>
-  <li><a href='/FWUPDATE'>update</a></li>
-  <li><a href='/REBOOT'>reboot</a></li>
-  <li><a onclick="return confirm('start AP, are you sure?')" href='/STARTAP'>AP</a></li>
-    </ul><br>
-  </div>
+<ul>
+<li><a href='/'>home</a></li>
+<li><a href='/TIMERCONFIG'>timers</a></li>
+<li><a href='/IPCONFIG'>wifi</a></li>
+<li><a href='/GEOCONFIG'>time</a></li>
+<li><a href='/MQTT'>mqtt</a></li>
+<li><a href='/FWUPDATE'>update</a></li>
+<li><a href='/REBOOT'>reboot</a></li>
+<li><a onclick="return confirm('start AP, are you sure?')" href='/STARTAP'>AP</a></li>
+</ul><br>
+</div>
 <div id='msect'>
   <br><kop>GENERAL SETTINGS</kop><br><br>
 </div>
 
-<div id='msect' style='height:50vh;'>
-
+<div id='msect'>
   <div class='divstijl' style='height:50vh;'>
 
   <form id='fM' method='get' action='basisConfig' oninput='subMit()'>
@@ -195,12 +194,13 @@ int klik=0;
 
 
 // *********************************************************************************
-//          zet de selectbox voor actieve automatisering
+//          replace the selectbox for active automation only (sensors)
 // **********************************************************************************
+#ifdef SENSORS
 void replace_timerselectbox () {  // wordt door basisconfig gebruikt
 toSend.replace("tieTel", swName );
 toSend.replace("HANSIART" , String(swName));  
-  #ifdef SENSORS
+
 // als er een temperatuursensor is dan moeten we de knop voor de instellingen zichtbaar maken
 // en ook de option voor thermostaat in de selectbox
 if (sensor[0] == '1' || sensor[0] == '2' || sensor[0] == '3') {
@@ -222,7 +222,7 @@ if (sensor[0] == '6') {
 if (sensor[0] == '7') {
   toSend.replace("aption4", "option"); // de option voor de digital sensor in de selectbox
 }
-#endif
+
 // zet de geselecteerde option in de select terug
 if (timer[0] == '0') {  // geen timers
     toSend.replace ("tM0", "selected");
@@ -244,3 +244,5 @@ if (timer[0] == '7') { //generic digital sensor
     toSend.replace ("tM7", "selected");
 }
 }
+
+#endif

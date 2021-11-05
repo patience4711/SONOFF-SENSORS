@@ -244,13 +244,14 @@ server.on("/METEN", HTTP_GET, [](AsyncWebServerRequest *request) {
 
 server.on("/SW=OFF", HTTP_GET, [](AsyncWebServerRequest *request) {
      loginBoth(request, "both");
-     switch_off_now(true, true, "webinterface");
+     switch_off_now(true, true, "web int");
+     value = 0;
      request->send_P(200, "text/html", HOMEPAGE);
 });
 server.on("/SW=ON", HTTP_GET, [](AsyncWebServerRequest *request) {
     loginBoth(request, "both");
-    value = 2;
-    switch_on_now(true, true, "webinterface");
+    value = 2; // for the update of the main page button
+    switch_on_now(true, true, "web int");
     request->send_P(200, "text/html", HOMEPAGE);
 });
 
@@ -270,10 +271,12 @@ server.on("/get.currentTime", HTTP_GET, [](AsyncWebServerRequest *request) {
 
 server.on("/get.Homepagedata", HTTP_GET, [](AsyncWebServerRequest *request) {     
     // set the array into a json object
+    int state = value;
+    if(state > 1) state = 1;
     //if (value != 0)
     String json = "{";
     json += "\"name\":\"" + String(swName) + "\"";
-    json += ",\"state\":\"" + String(value) + "\""; // can be 1 or 0
+    json += ",\"state\":\"" + String(state) + "\""; // can be 1 or 0
     json += "}";
      
     //Serial.println("get.Homepagedata reaction = " + json);

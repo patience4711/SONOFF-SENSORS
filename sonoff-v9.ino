@@ -78,7 +78,7 @@ DNSServer dnsServer;
 //  time_t zetAanschakeltijd = 0;
   byte mDay = 0;
   String  maan = "";
-  String dst;
+  int dst;
 
  // variabelen wificonfig
   char pswd[11] = "0000";
@@ -107,6 +107,7 @@ DNSServer dnsServer;
   char switchcdwn[6] = "00:00";
 //  char zetAan[3] = "00";
   char switchHL[5] = "0000"; // bool voor hoger of lager therm hyg licht dig
+
 #ifdef SENSORS
   char switchTemp[6] = "+0.1"; // was 4
   char switchMoist[3] = "11"; // de vochtigheidsgraad
@@ -347,7 +348,7 @@ if (sensor[0] == '4' || sensor[0]=='5' || sensor[0]=='7' ){  // voor de body, to
   #ifdef SENSORS 
   meetENschakel(); //
   #else
-  sendMqttswitch(); //mqtt dat de schakelaar uit is
+  mqttSwitchupdate(); //mqtt dat de schakelaar uit is
   #endif
 
   ledblink(3, 500);
@@ -409,11 +410,13 @@ unsigned long nu = millis();  // de tijd dat het programma al loopt
       if (actionFlag == 20)
       {
           actionFlag = 0;
+          value = 1;
           switch_on_now(true, true, "button");
       }  
       if (actionFlag == 21) 
       {
           actionFlag=0;
+          //value = 0; not needed
           switch_off_now(true, true, "button");
       }
     
@@ -436,7 +439,7 @@ unsigned long nu = millis();  // de tijd dat het programma al loopt
    if (day() != datum && hour() > 4) { // if date overflew and later than 4
    getTijd(); // synchronize and arm the timers for recalculation
    }
-
+#ifdef SENSORS
   // ****************************************************************************
   //                schakelen door de timers
   // ****************************************************************************  
@@ -446,15 +449,27 @@ unsigned long nu = millis();  // de tijd dat het programma al loopt
        for(int z=0; z<TIMERCOUNT; z++)
        {
           //mustCalc is only true if the timer is active
-          if(mustCalc[z] == true && hasSwitched[z] == false) 
+          if(mustCalc[z] == true && hasSwitched[z] == false) //mustCalc only timers that have timerActive true
           { // only when off
              timerCalc(z);  // when calculated mustCalc becomes false
           }
        }    
        timerSwitch(); 
-   }
-
-   
+}
+#else
+// not SENSORS  
+      // if the switch is off and armed, we can recalculate it
+       for(int z=0; z<TIMERCOUNT; z++)
+       {
+          //mustCalc is only true if the timer is active
+          if(mustCalc[z] == true && hasSwitched[z] == false) //mustCalc only timers that have timerActive true
+          { // only when off
+             timerCalc(z);  // when calculated mustCalc becomes false
+          }
+       }    
+       timerSwitch(); 
+#endif
+#ifdef SENSORS   
    //  ************** automatisch uitschakelen door de cdwn ********************************
    // is active when a motion sensor is triggerd
    // test if triggered by the motionsensor
@@ -467,43 +482,22 @@ unsigned long nu = millis();  // de tijd dat het programma al loopt
            }
      }
 
+#endif
 
-// ****************** vergeten lamp beveiliging *********************************************
-// als de lamp- handmatig is ingeschakeld blijft hij branden tot in de eeuwigheid
+// ****************** forgotten lamp security *********************************************
+// if the lamp is switched manual it would be on forever
 
-// we weten het inschakeltijdstip en 6 uur later schakelt hij altijd uit
-// als handmatig is aangezet (event 1 of 3) wordt het inschakeltijdstip vastgelegd
-// na 6 uur automatisch uit tenzij intussen door een timer of door domoticz wordt ingeschakeld.
-
-// dit kan nooit de timers in de wielen rijden, bij uitschakelen lampvlag 0 en bij inschakelen geen lampvlag
-// bij schakelen door domoticz ook lampvlag nul
-// deze beveiliging mag alleen werken als er handmatig ingeschakeld is terwijl er geen timer of domoticz heeft ingeschakeld.
-
-if ( value == 1 || value == 2 || value == 17) { // er is ingeschakeld door drukknop of webinterface of opteltimer
+if ( value == 1 || value == 2 || value == 17) { // switched on by button or web or mosquitto
 // als de lamp brandt ( dat doet ie als event > 0 )
      if ( now() > inschakeltijdstip + ((asouur * 60 + asominuut) * 60)) { // 6 uur == 21600 voor test 3 min. == 180sec
              switch_off_now(true, false, "security"); //meteen de lamp uit, mqtt, geen timercheck
              //DebugPrintln("uitgeschakeld door beveiliging"); 
-             value = 0;
+             //value = 0;
              //Update_Log("security","switched off"); 
      }
 }
 
-//// *************************************************************************
-////                inschakelen na een ingestelde tijd
-//// **************************************************************************
-//  if (optelBool && now() > zetAanschakeltijd) {
-//    
-//    if (value == 0) { // de lamp is niet ingeschakeld }
-//    switch_on_now(true, true, "Count Up"); //mqtt en checktimers
-//    //Update_Log("Count Up","switched on");
-//    optelBool = false; // geen herhaling
-//    // de lamp brandt nu en wordt door vergeten uitgeschakeld
-//    } else {
-//    // de lamp brandt al dus we disarmen de optel
-//    optelBool = false; // anders gaat hij achteraf toch aan  
-//    }
-// }
+
 #ifdef SENSORS 
 // ***************************** motion sensor ****************************************
 // behaviour can be set in timers
@@ -521,7 +515,8 @@ if ( sensor[0] == '4' ) { // works also when timers are active
       //bool switched = false;
       if ( bwswitch() && value == 0 ) // we have to switch and the lamp = off
       { 
-         switch_on_now(false, false, "motion sensor"); // lamp on at once
+         value = 18;
+         switch_on_now(true, false, "motion sensor"); // lamp on at once
          Update_Log("system", "motion sensor triggerd");
          event = 18;
          //DebugPrintln("bodysensor getriggerd");
@@ -578,13 +573,11 @@ int val = digitalRead(3);
      
                 if (value > 1) { // value was 1 dus er was ingeschakeld
                     //DebugPrintln("we moeten uitschakelen");
-                    switch_off_now(true, false, "external button"); //meteen de lamp aan
-                    //event=21;
+                    actionFlag = 21; // make it switch off
                     delay(1000); //om repetities te voorkomen
                 } else {
                      //DebugPrintln("we moeten inschakelen"); 
-                     switch_on_now(true, false, "external button"); //meteen de lamp aan
-                     //event=1;
+                     actionFlag = 20;
                      delay(1000); //om repetities te voorkomen
                 }
             }
@@ -615,13 +608,11 @@ int val = digitalRead(sw_pin);
                 if (value > 1) { // value was not 1 
                     //DebugPrintln("we moeten uitschakelen");
                     //value=0; //
-                    switch_off_now(true, true, "button mini"); //meteen de lamp uit en mqtt message
-                    //event=21;
+                    actionFlag = 21;
                     delay(1000); //om repetities te voorkomen
                 } else {
                      //DebugPrintln("we moeten inschakelen"); 
-                     switch_on_now(true, true, "button mini"); //meteen de lamp aan
-                     //event=1;
+                     actionFlag = 20;
                      delay(1000); //om repetities te voorkomen
                 }
             }
@@ -661,28 +652,31 @@ void thermostaat() {
       if (temp_c > switch_temp) { // als de polled temperatuur hoger is
 
            if ( b == '0' && value == 0) { // inschakelen als 'hoger dan' is geselecteerd en niet aan is
-                  switch_on_now(false, false, "thermostate"); //meteen de lamp aan
+                  value = 12;
+                  switch_on_now(true, false, "thermostate"); //meteen de lamp aan
                   //DebugPrintln("ingeschakeld door thermostaat");
                   //event = 12;
+                  
                   return;
            }
            if ( b == '1' && value > 0 ) { //uitschakelen als 'lager dan' is geselecteerd
                   //DebugPrintln("uitgeschakeld door thermostaat");
-                  switch_off_now(false, false, "thermostate"); //meteen de lamp uit en mqtt message
+                  switch_off_now(true, false, "thermostate"); //meteen de lamp uit en mqtt message
                   //event = 32;
                   return;
                  }
            
       } else { // als de polled temperatuur lager is
            if ( b == '1' && value == 0) { // inschakelen als 'lager dan' is geselecteerd en niet aan is
-                  switch_on_now(false, false, "thermostate"); //meteen de lamp aan
+                  switch_on_now(true, false, "thermostate"); //meteen de lamp aan
                   //DebugPrintln("ingeschakeld door thermostaat");
                   //event = 12;
+                  value = 12;
                   return;
            }
            if ( b == '0' && value > 0 ) { //uitschakelen als 'hoger dan' is geselecteerd en aan is
                   //DebugPrintln("uitgeschakeld door thermostaat");
-                  switch_off_now(false, false, "thermostate"); //meteen de lamp uit en mqtt message
+                  switch_off_now(true, false, "thermostate"); //meteen de lamp uit en mqtt message
                   //event = 32;
                   return;
                  }
@@ -701,14 +695,15 @@ void hygrostaat() {
 
       if (humidity > hum) { // als de polled vochtigheid hoger is
            if ( b == '0' && value == 0) { // inschakelen als 'hoger dan' is geselecteerd en niet aan is
-                  switch_on_now(false, false, "humidity sensor"); //meteen de lamp aan
+                  value = 13;
+                  switch_on_now(true, false, "humidity sensor"); //meteen de lamp aan
                   //DebugPrintln("ingeschakeld door hygrostaat");
                   //event = 13;
                   return;
            }
            if ( b == '1' && value > 0 ) { //uitschakelen als 'lager dan' is geselecteerd
-                  //DebugPrintln("uitgeschakeld door hygroostaat");
-                  switch_off_now(false, false, "humidity sensor"); //meteen de lamp uit en mqtt message
+                  //DebugPrintln("uitgeschakeld door hygrostaat");
+                  switch_off_now(true, false, "humidity sensor"); //meteen de lamp uit en mqtt message
                   //event = 33;
                   return;
                  }
@@ -716,14 +711,16 @@ void hygrostaat() {
       } else { // als de polled vochtigheid lager is
 
            if ( b == '1' && value == 0) { // inschakelen als 'hoger dan' is geselecteerd en niet aan is
-                  switch_on_now(false, false, "humidity sensor"); //meteen de lamp aan
+                  value = 13;
+                  switch_on_now(true, false, "humidity sensor"); //meteen de lamp aan
                   //DebugPrintln("ingeschakeld door hygrostaat");
                   //event = 13;
+
                   return;
            }
            if ( b == '0' && value > 0 ) { //uitschakelen als 'lager dan' is geselecteerd
                   //DebugPrintln("uitgeschakeld door hygrostaat");
-                  switch_off_now(false, false, "humidity sensor"); //meteen de lamp uit en mqtt message
+                  switch_off_now(true, false, "humidity sensor"); //meteen de lamp uit en mqtt message
                   //event = 33;
                   return;
                  }
@@ -737,14 +734,16 @@ void lichtSensor() {
   DebugPrint("switchLicht = ");
   DebugPrintln(licht);
   char b = switchHL[2]; 
-      if (p > licht) { // als de polled lichtsterkte hoger is
-           if (b == '0' && value == 0) { // inschakelen als 'hoger dan' is geselecteerd en uit
+      if (p > licht) { // if the polled light is higher
+           if (b == '0' && value == 0) { // //switch on when 'higher than' is selected and off
+                  value = 14;
                   switch_on_now(true, false, "lightsensor"); //meteen de lamp aan
                   //DebugPrintln("ingeschakeld door lichtsensor");
                   //event = 14;
+
                   return;
            }
-          if (b == '1' && value >0) { //uitschakelen als 'lager dan' is geselecteerd en aan
+          if (b == '1' && value >0) { //switch off when 'lower than' is selected and on
                   //DebugPrintln("uitgeschakeld door lichtsensor");
                   switch_off_now(true, false, "lightsensor"); //meteen de lamp uit en mqtt message
                   //event = 34;
@@ -752,114 +751,51 @@ void lichtSensor() {
                  }
            
       } else { // de polled lichtsterkte is dus lager
-           if (b == '1' && value == 0) { // inschakelen als 'hoger dan' is geselecteerd en uit
+           if (b == '1' && value == 0) { // //switch on when 'lower than' is selected and off
+                  value = 14;
                   switch_on_now(true, false, "lightsensor"); //meteen de lamp aan
-                  //DebugPrintln("ingeschakeld door lichtsensor");
-                  //event = 14;
                   return;
                   }
-          if (b == '0' && value > 0) { //uitschakelen als 'lager dan' is geselecteerd en aan
-                  //DebugPrintln("uitgeschakeld door lichtsensor");
+          if (b == '0' && value > 0) { //switch off when 'higer than' is selected and on
                   switch_off_now(true, false, "lightsensor"); //meteen de lamp uit en mqtt message
-                  //event = 34;
                   return;
                  }
         }
 }
-// *********** automatisch inschakelen door generic digital sensor *************************************************
-void digitalSensor() { //opgeroepen door meten()
+// *********** automatic switch by generic digital sensor *************************************************
+void digitalSensor() { //called by meten()
 
-// als de sensor hoog is
+// if the sensor is high
   char b = switchHL[3];
-// als de sensor hoog is   
-      if (digitalRead(3) == HIGH) { // als de sensor hoog is
-           if (b == '1' && value == 0) { // inschakelen als 'high' is geselecteerd
-                  switch_on_now(false, false, "digital sensor"); //meteen de lamp aan
+      if (digitalRead(3) == HIGH) { // if the sensor is high
+           if (b == '1' && value == 0) { // //switch on when 'high' is selected
+                  value = 15;                  
+                  switch_on_now(true, false, "digital sensor"); //meteen de lamp aan
                   //DebugPrintln("ingeschakeld door digital sensor");
                   //event = 15;
+
                   return;
            }
-          if (b == '0' && value > 0) { //uitschakelen als 'low' is geselecteerd
-                  //DebugPrintln("uitgeschakeld door generic sensor");
-                  switch_off_now(false, false, "digital sensor"); //meteen de lamp uit en mqtt message
+          if (b == '0' && value > 0) { //switch off when 'low' is selected
+                   switch_off_now(true, false, "digital sensor"); //meteen de lamp uit en mqtt message
                   //event = 35;
                   return;
                  }
            
       } else { // sensor is low
-           if (b == '0' && value == 0) { // inschakelen als 'high' is geselecteerd
-                  switch_on_now(false, false, "digital sensor"); //meteen de lamp aan
-                  //DebugPrintln("ingeschakeld door digital sensor");
-                  //event = 15;
+           if (b == '0' && value == 0) { //switch on when 'high' is selected
+                  value = 15;                 
+                  switch_on_now(true, false, "digital sensor"); //meteen de lamp aan
                   return;
            }
-          if (b == '1' && value > 0) { //uitschakelen als 'low' is geselecteerd
-                  //DebugPrintln("uitgeschakeld door generic sensor");
-                  switch_off_now(false, false, "digital sensor"); //meteen de lamp uit en mqtt message
-                  //event = 35;
+          if (b == '1' && value > 0) { //switch off when 'low' is selected
+                  switch_off_now(true, false, "digital sensor"); //meteen de lamp uit en mqtt message
                   return; 
                  }
        }
  }
 #endif
 
-
-
-// ********************************************************************************************
-// *                   schakelen door de timers                                               *
-// ********************************************************************************************
-
-//void test_schakel_in(int welke) {
-//            if ( now() > (inschakeltijd[welke]) && now() < uitschakeltijd[welke] && timer[0] == '1') { 
-//                switch_on_now(true, false, "timer " + String(welke)); // meteen de lamp aan
-//                value = 3 + welke; // 3 of 4 of 5 of 6
-//                hasSwitched[welke]=true;
-//                //Update_Log("timer " + String(welke), "switched off");
-//            }
-//}
- 
-//void test_schakel_uit(int welke) {
-//  //When we come here we know that hasSwitched(welke) = true
-//  // when switched manually it shou be switched off by a timer so we disarm it. checkTimers does this
-//  // alleen uitschakelen als event = 3 of 4 of 5 0f 6 : als now() groter is dan de uitschakeltijd
-//  // welke is het nummer van de timer
-//         if (now() > uitschakeltijd[welke] && timer[0] == '1') { // als event 3 4 5 of 6 is
-//              switch_off_now(true, false, "timer " + String(welke)); //meteen de lamp uit en mqtt message en checkTimers
-//              value = 0;
-//              // als hij uitschakelt kan hij dan ook mustSwitch false maken
-//              mustSwitch[welke] = false;
-//              hasSwitched[welke]=false;
-//              //Update_Log("timer " + String(welke), "switched off");
-//           }
-//    }
- 
-
-//void checkAuth() {
-//  // we komen hier alleen via SW=ON of SW=OFF
-//// als niet ingelogd gaan we naar notFound, anders zendpage
-//        if (server.authenticate("user", userPasswd) || server.authenticate("admin", pswd) ) {
-//          //we zijn ingelogd dus deze opdracht komt altijd van het webinterface 
-//            String serverargument = server.uri().c_str();
-//            if ( serverargument == "/SW=ON" )  {
-//                   DebugPrintln("SW=ON gevonden");
-//                   switch_on_now(true, true); //meteen de lamp aan
-//                   event = 2;
-//                   return zendHomepage(); // ???
-//            }
-//            if ( serverargument == "/SW=OFF" )  {
-//                   DebugPrintln("SW=OFF gevonden");
-//                   switch_off_now(true, true); //meteen de lamp uit en mqtt message
-//                   event = 22;
-//                   return zendHomepage(); // ???
-//            }
-//         // als we hier komen zit er geen ON of OFF in dus dan naar notfound    
-//        return handleNotFound(); //kijkt ook voor on/of
-//             
-//        } else {
-//         // we zijn niet geautenticeerd 
-//         return handleNotFound(); // kijkt ok voor on of
-//        }
-//}
 
 #ifdef SENSORS
 bool donker() {
@@ -905,10 +841,11 @@ void switch_on_now(bool zend, bool check, String logID) {
   inschakeltijdstip = now();
     if ( digitalRead(RELAY_PIN) != SWITCH_AAN ) {
         digitalWrite(RELAY_PIN, SWITCH_AAN); // schakel de lamp in als die uit was
-        value = 1;
-        if( zend ) { sendMqttswitch(); }// mqtt message niet polled wel geschakeld 
+        //value = 1; determined by the interface that cals this function 
+        // 1=button 2=webinterface 3=external 4 = mqtt 5=timer0 6=timer1
+        if( zend ) { mqttSwitchupdate(); }// mqtt message niet polled wel geschakeld 
         if( check ) {checkTimers();} // een eventueel ingeschakelde timer disarmen
-        if(logID != "") Update_Log(logID, "switched on"); 
+        if(logID != "") Update_Log(logID, "on"); 
     }
 
 }
@@ -917,9 +854,9 @@ void switch_off_now(bool zend, bool check, String logID) {
     if ( digitalRead(RELAY_PIN) != SWITCH_UIT ) {
         digitalWrite(RELAY_PIN, SWITCH_UIT); // schakel de lamp uit
         value = 0;
-        if( zend ) { sendMqttswitch(); }// mqtt message niet polled wel geschakeld
+        if( zend ) { mqttSwitchupdate(); }// mqtt message niet polled wel geschakeld
         if( check ) {checkTimers();} // een eventueel ingeschakelde timer disarmen
-        if(logID != "") Update_Log(logID, "switched off");  
+        if(logID != "") Update_Log(logID, "off");  
     }
 }
 

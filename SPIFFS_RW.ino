@@ -133,14 +133,16 @@ void basisConfigsave() {
     json["swName"] = swName;
     json["userPasswd"] = userPasswd;
     json["aso"] = aso;
-    json["timer"] = timer;
+
 //#ifdef MINI
 //    json["SCHAKELAAR"] = SCHAKELAAR;
 //    #endif    
 #ifdef SENSORS
+    json["timer"] = timer;
     json["sensor"] = sensor;
     json["tempCal"] = tempCal; 
     json["meetRes"] = meetRes;   
+
 #endif 
     
     File configFile = LittleFS.open("/basisconfig.json", "w");

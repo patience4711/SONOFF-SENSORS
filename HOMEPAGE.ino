@@ -14,8 +14,8 @@ const char HOMEPAGE[] PROGMEM = R"=====(
 <div id='msect'>
     <div class='divstijl' id='maindiv' style='height:76vh;'>
     <center>
-    <span id='pwdby' style='font-size:11px; display:table;'>powered by Hansiart</span><br>
-    <button class='bt' id='knop' onclick='myFunction();' style='background:#b30000;'>SWITCH-ON</button>
+    <span id='pwdby' style='font-size:11px; display:table; color: white;'>powered by Hansiart</span><br>
+    <button class='bt' id='knop' onclick='myFunction();' >SWITCH</button>
     <br>
     <br>
     </div>
@@ -32,14 +32,17 @@ function myFunction() {
 var xhttp = new XMLHttpRequest();  
 var btn = document.getElementById('knop');
 var veld = document.getElementById('veld'); 
-    if(btn.innerHTML == "SWITCH-ON" ) {
+    if(!btn.classList.contains('bt_on')) { // the lamp is off
+          btn.classList.add('bt_on');
           xhttp.open("GET", "SW=ON", true);
           xhttp.send();
     } else {
+          btn.classList.remove('bt_on');
           xhttp.open("GET", "SW=OFF", true);
           xhttp.send();
     }
-    getData(); // sets the page props
+    //getData(); // sets the page props
+    setTimeout(getData, 2000);
 }
 
 setInterval(function loadData() {
@@ -57,15 +60,13 @@ var veld = document.getElementById('veld');
       var name = obj.name;
       var state = obj.state;
       if (state == "0") {
-        btn.innerHTML = "SWITCH-ON";
-        btn.style.background = "#009900";
+        btn.classList.remove('bt_on');
         document.getElementById("maindiv").style.background="grey";
-        document.getElementById("pwdby").style.color="white";
+        //document.getElementById("pwdby").style.color="white";
       } else {
-        btn.innerHTML = "SWITCH-OFF";
-        btn.style.background = "#b30000";
-        document.getElementById("maindiv").style.background="linear-gradient(#e8edc8, #c8eaed)";
-        document.getElementById("pwdby").style.color="green";       
+        btn.classList.add('bt_on');
+        document.getElementById("maindiv").style.background="linear-gradient(#3bb300, #4ce600)";
+       // document.getElementById("pwdby").style.color="green";       
       }
       document.getElementById("naamveld").innerHTML=name;
     }

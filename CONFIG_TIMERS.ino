@@ -7,10 +7,10 @@ const char TIMERCONFIG_START[] PROGMEM = R"=====(
 <div id='bo'></div>
     <ul>
     <li><a href='/'>home</a></li>
-    <li><a href='/TIMER?welke=0' >timer 0</a></li>
-    <li><a href='/TIMER?welke=1' >timer 1</a></li>
-    <li><a href='/TIMER?welke=2' >timer 2</a></li>
-    <li><a href='/TIMER?welke=3' >timer 3</a></li>
+    <li><a href='/TIMER?welke=0' >timer0</a></li>
+    <li><a href='/TIMER?welke=1' >timer1</a></li>
+    <li><a href='/TIMER?welke=2' >timer2</a></li>
+    <li><a href='/TIMER?welke=3' >timer3</a></li>
     </ul>
 </div>
 
@@ -256,7 +256,7 @@ void plaats_timerpage()
     toSend.replace("{uitx}" , "" + String(switchOff[tKeuze*5]) + String(switchOff[tKeuze*5+1]) + String(switchOff[tKeuze*5+2]) + String(switchOff[tKeuze*5+3]) + String(switchOff[tKeuze*5+4])); 
 }  
 
-
+#ifdef SENSORS
 void timerSwitch() 
 {
 //for each timer see if it has to switch
@@ -292,7 +292,44 @@ int welke = check_hasSwitched(); // check which switch is on
 
     } // end else
 } 
+#else
+// not sensors
+void timerSwitch() 
+{
+//for each timer see if it has to switch
+int welke = check_hasSwitched(); // check which switch is on 
+    if (welke == 100) // all off
+    {
+    // check for all timers if mustSwitch is applied
+    // if yes switch on
+        for(int i=0; i<TIMERCOUNT; i++) 
+        {
+          if ( mustSwitch[i] ) 
+             {
+               if ( now() > (inschakeltijd[i]) && now() < uitschakeltijd[i]) 
+                  { 
+                      switch_on_now(true, false, "timer " + String(i)); // meteen de lamp aan
+                      value = 5 + i; // 5 of 6 of 7 of 8
+                      hasSwitched[i] = true;
+                      break; //if we switched one, we break otherwise more than one is switched
+                  }
+            }
+         } // end for loop
+    } 
+    else 
+    {
+    //we know now that switch "welke" is on
+    // check if we must switch this particulary timer off
+        if (now() > uitschakeltijd[welke] ) { 
+              switch_off_now(true, false, "timer " + String(welke)); 
+              value = 0;
+              mustSwitch[welke] = false;
+              hasSwitched[welke]=false;
+              }
 
+    } // end else
+}
+#endif
 int check_hasSwitched() {
     // if switched by a timer, return timernbr 
     for (int x=0; x<TIMERCOUNT; x++){

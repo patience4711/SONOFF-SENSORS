@@ -91,11 +91,12 @@ ICACHE_RAM_ATTR void isr() {
     value += 1; // value = always 1 or greather, after this addition
       if (value > 1) // value was 1 so switched on
       { 
-      // here we can put our switch off command
+      actionFlag = 21; // make it switch off
      }
      else 
-     { // value =  was 0 so switched off 
-     // here we can put our switch off command
+     { // value =  was 0 so was switched off 
+     actionFlag = 20; //make it switch on
+     
      }
      attachInterrupt(digitalPinToInterrupt(knop), isr, FALLING);  
  }

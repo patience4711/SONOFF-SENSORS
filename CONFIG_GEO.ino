@@ -17,14 +17,15 @@ const char GEOCONFIG[] PROGMEM = R"=====(
 </div>
 <div id='msect'>
 <div id='bo'></div>
-<div class='divstijl' style='height:62vh;'>
-<form id='fM' method='get' action='geoconfig' oninput='subMit();'>
-<center><table>
-<tr><td style='width:140px;'>longitude &deg<td><input  class='inp3' name='le' length='8' placeholder='lengtegraad' value='{le}'></input></tr> 
-<tr><td>latitude &deg<td><input class='inp3' name='be' length='8' placeholder='latitude' value='{be}'></input></tr> 
-<tr><td>timezone<td><input class='inp2' name='tz' length='6' placeholder='minutes relative to GMT' value='{tz}'></input></tr>
-<tr><td>dst y/n<td><input type='checkbox' style='width:30px; height:30px;' name='ts' #check></input></tr></table> 
-</div></div><br></form>
+  <div class='divstijl' style='height:62vh;'>
+  <form id='fM' method='get' action='geoconfig' oninput='subMit();'>
+  <center><table>
+  <tr><td style='width:140px;'>longitude &deg<td><input  class='inp3' name='le' length='8' placeholder='lengtegraad' value='{le}'></input></tr> 
+  <tr><td>latitude &deg<td><input class='inp3' name='be' length='8' placeholder='latitude' value='{be}'></input></tr> 
+  <tr><td>timezone<td><input class='inp2' name='tz' length='6' placeholder='minutes relative to GMT' value='{tz}'></input></tr>
+  <tr><td>dst y/n<td><input type='checkbox' style='width:30px; height:30px;' name='ts' #check></input></tr></table> 
+  </div>
+</div><br></form>
 <div id='msect'>
 <ul>
 <li><a href='#' onclick='hlpf()'>help</a>

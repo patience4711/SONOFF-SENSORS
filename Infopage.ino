@@ -44,7 +44,13 @@ toSend.replace("tieTel", swName );
 toSend+="<center><h2>STATUS INFORMATION</h2></center>";
 toSend+="<center><div style='position:fixed; margin: auto; left: 0; right: 0'>";
 toSend +="<a href='/'> <button style='width:150px; height:50px;text-align:center; font-weight:bold; font-size:20px; background:#db97b9;'>close</button></a></div>";
-toSend +="<br><br><br><br>system time = <span style='font-size:20px;font-weight:bold' id='tijdveld'></span> hr.&nbsp&nbsp summertime.<br>"; 
+
+String zt = "summertime";
+switch (dst) {
+  case 2: zt="wintertime"; break;
+  case 0: zt="no dst set"; break;
+}
+toSend += "<br><br><br><br>system time = <span style='font-size:20px;font-weight:bold' id='tijdveld'></span> hr.&nbsp&nbsp" + zt + "<br>"; 
 
 DebugPrintln("fase 0");
 
@@ -126,28 +132,26 @@ toSend += "the signaalstrength of the router = " + String(rssi) + "<br>";
 // 2 == uit drukknop  4 = uit webpage 7 = uit timer 1 8 = uit timer 2
 
 
-
-
 if ( value == 1 || value == 2 || value == 17 || value == 18) { // handmatig ingeschakeld, zetAan of bewegingssensor
-String digit = "";
-int minuutje = minute(inschakeltijdstip);
-if  ( minuutje<10 ) { digit = "0"; } else {digit = ""; }
-toSend += "  time switched on : " + String(hour(inschakeltijdstip)) + ":" + digit + String(minute(inschakeltijdstip)) + "<br>";
-
-if ( value == 18 || timer[0] == '2' ) { // ingeschakeld door bewegingssensor, zoniet handmatig en dan moet de cdwn zijn ingeschakeld
-        time_t uitschakeltijd = inschakeltijdstip + ((cdwnuur * 60 + cdwnminuut) * 60) ; // aantal seconden
-        int minuutje = minute(uitschakeltijd);
-        if  ( minuutje < 10 ) { digit = "0"; } 
-        toSend += "  there will be switched off by the bodysensor at " + String(hour(uitschakeltijd)) + ":" + digit + String(minute(uitschakeltijd)) + "<br>";
-    } else { 
-//     int temp = (asouur * 60 + asominuut) * 60;
-        time_t uitschakeltijd = inschakeltijdstip + (asouur * 60 + asominuut) * 60 ; // aantal seconden
-        int minuutje = minute(uitschakeltijd);
-        if  ( minuutje < 10 ) { digit = "0"; } else {digit = ""; }
-    toSend += "  there will be switched off by the security at " + String(hour(uitschakeltijd)) + ":" + String(minute(uitschakeltijd)) + "<br>";
-  }
+    String digit = "";
+    int minuutje = minute(inschakeltijdstip);
+    if  ( minuutje<10 ) { digit = "0"; } else {digit = ""; }
+    toSend += "  time switched on : " + String(hour(inschakeltijdstip)) + ":" + digit + String(minute(inschakeltijdstip)) + "<br>";
+    #ifdef SENSORS
+    if ( value == 18 || timer[0] == '2' ) { // ingeschakeld door bewegingssensor, zoniet handmatig en dan moet de cdwn zijn ingeschakeld
+            time_t uitschakeltijd = inschakeltijdstip + ((cdwnuur * 60 + cdwnminuut) * 60) ; // aantal seconden
+            int minuutje = minute(uitschakeltijd);
+            if  ( minuutje < 10 ) { digit = "0"; } 
+            toSend += "  there will be switched off by the bodysensor at " + String(hour(uitschakeltijd)) + ":" + digit + String(minute(uitschakeltijd)) + "<br>";
+        } 
+    #endif    
+    if ( value != 18) {// manual switched on (not by motionsensor) 
+            time_t uitschakeltijd = inschakeltijdstip + (asouur * 60 + asominuut) * 60 ; // aantal seconden
+            int minuutje = minute(uitschakeltijd);
+            if  ( minuutje < 10 ) { digit = "0"; } else {digit = ""; }
+        toSend += "  switched off time by security: " + String(hour(uitschakeltijd)) + ":" + String(minute(uitschakeltijd)) + "<br>";
+    }
 }
-
   int minutens = millis()/60000;
   int urens = minutens/60;
   int dagen = urens/24;
@@ -186,21 +190,22 @@ toSend += "<tr><td>Free memory<td>" +  String(ESP.getFreeHeap()) + " bytes<td><t
 toSend += "<h3>variables dump</h3>";
 //toSend += "mqttIntopic : " + mqttIntopic + "  mqttOuttopic : " + mqttOuttopic + "<br>";
 #ifdef SENSORS
+toSend += "timer[0]=" + String(timer[0]) + "<br>";
 toSend += "sensor[0]=" + String(sensor[0]) + "   BS[0] = " + String(BS[0]) + "   donker=" + String(donker()) +  "   boodschap=" + String(boodschap())  + "   bwswitch=" + String(bwswitch()) +  "<br>";
 //toSend += "meetRes = " + String (meetRes) + "   ";
-toSend += "switchHL 0=temp 1=moist 2=licht 3=digital" + String(switchHL) + "<br>";
+toSend += "switchHL 0=temp 1=moist 2=licht 3=digital" + String(switchHL) + "   meetRes" + String(meetRes) + "<br>";
 #endif
 
 //toSend += "dns ip 1 : " + WiFi.dnsIP().toString() + "  dns IP 2 : " + WiFi.dnsIP(1).toString()  + "<br>";
-toSend += "timer[0]=" + String(timer[0]) + "   zomerTijd=" + String(zomerTijd) + "   tKeuze = " + String(tKeuze) + "<br>";
+toSend += "zomerTijd=" + String(zomerTijd) + "   tKeuze = " + String(tKeuze) + "<br>";
 toSend += "relToSunOn = " + String(relToSunOn) + "  relToSunOff = " + String(relToSunOff) + "<br>"; 
 toSend += "switchOn = " + String(switchOn) + "<br>";
 toSend += "switchOff = " + String(switchOff) + "<br>";
 toSend += "weekDag = " + String(weekDag) + "<br>";
 toSend += "mustSwitch = " + String(mustSwitch[0]) + String(mustSwitch[1]) + String(mustSwitch[2]) + String(mustSwitch[3]) + "<br>";
 toSend += "hasSwitched = " + String(hasSwitched[0]) +String(hasSwitched[1]) + String(hasSwitched[2]) + String(hasSwitched[3]) + "<br>";
-toSend += "value = " + String(value) + "   switchHL = " + String(switchHL) + "   meetRes" + String(meetRes) + "<br>";
-toSend += "pin 3 (tx) = " + String(digitalRead(3))  + "  zomerTijd = " + String(zomerTijd) ;
+
+toSend += "pin 3 (tx) = " + String(digitalRead(3))  + "   value = " + String(value) ;
 
 toSend += "<h3>Contents filesystem :</h3>";
 Dir dir = LittleFS.openDir("/");

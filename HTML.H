@@ -33,7 +33,7 @@ body {
   }
 
 .divstijl {
-  background: linear-gradient(#e8edc8, #c8eaed); 
+  background: linear-gradient(#3bb300, #4ce600); 
   padding:0px 0px 0px 0px;
   width: 96%;
   height: 99%; 
@@ -72,24 +72,17 @@ p {
   text-align:center;
   border-radius:15px;
   color:white;
-  background-color:red;
+  background: #262626;
   font-weight:bold;
   font-size:4vw;
   box-shadow: 0 9px #999;
   }
-.red{
-    background-color:#b9b9c1;
-    border:2px solid black;
+.bt_on{
+  background:yellow;
+  color:black;
+  box-shadow: 0px 0px 20px 15px red;
   }
-.rad {
-    background-color:#cc99ff;
-    border:2px solid black;
-    }
-.bt:active {
-  background-color: #3e8e41;
-  box-shadow: 0 5px #666;
-  transform: translateY(4px);
-}
+
 input { font-size:24px; }
 .inp1 { width:46px; }
 .inp2 { width:62px; } 

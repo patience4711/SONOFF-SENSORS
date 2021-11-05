@@ -22,11 +22,13 @@ if ( addy.indexOf(router) == -1 ) { // indexOf geeft -1 als niet gevonden
 if ( intern ) { 
              
              if(serverargument.indexOf("SWITCH=ON") >-1 ){
-              switch_on_now(true, true, "external");
+              value = 3;
+              switch_on_now(true, true, "web ext");
               request->send(200, "text/plain", "ok switched on");  
              } else
              if(serverargument.indexOf("SWITCH=OFF") >-1 ){
-              switch_off_now(true, true, "external");
+              value = 0;
+              switch_off_now(true, true, "web ext");
               request->send(200, "text/plain", "ok switched off");  
              } else            
             

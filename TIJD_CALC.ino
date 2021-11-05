@@ -263,11 +263,11 @@ sunMoon  sm;
             if (zomertijd() == true) { // we kijken of de zomertijd van toepassing is
               sunrise = sunrise + 3600; // seconden
               sunset  = sunset + 3600;
-              dst = "zomertijd. ";
+              dst = 1;
               } else {
-              dst = "wintertijd. ";  
+              dst = 2;   // winter
               }
        } else { 
-           dst = "geen zomer/wintertijd ingesteld"; 
+           dst = 0; 
            }
  }
